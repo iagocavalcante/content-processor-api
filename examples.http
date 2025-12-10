@@ -1,0 +1,224 @@
+# Content Processor API Examples
+# Use with REST Client VS Code extension or similar
+
+@baseUrl = http://localhost:3000
+# @baseUrl = https://content-processor-api.fly.dev
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Get API Documentation
+GET {{baseUrl}}/documentation
+
+###
+### Job Creation Examples
+###
+
+### Create Image Processing Job
+POST {{baseUrl}}/jobs/images
+Content-Type: application/json
+
+{
+  "imageId": "img-001",
+  "sourceUrl": "https://example.com/sample.jpg",
+  "operations": {
+    "resize": {
+      "width": 800,
+      "height": 600
+    },
+    "format": "webp",
+    "quality": 85,
+    "optimize": true
+  },
+  "tenantId": "tenant-123"
+}
+
+### Create PDF Generation Job
+POST {{baseUrl}}/jobs/documents
+Content-Type: application/json
+
+{
+  "documentId": "doc-001",
+  "template": "invoice",
+  "data": {
+    "invoiceNumber": "INV-2025-001",
+    "customerName": "John Doe",
+    "amount": 1250.00,
+    "items": [
+      { "name": "Product A", "quantity": 2, "price": 500 },
+      { "name": "Product B", "quantity": 1, "price": 250 }
+    ]
+  },
+  "options": {
+    "format": "A4",
+    "orientation": "portrait",
+    "includeHeader": true,
+    "includeFooter": true
+  },
+  "tenantId": "tenant-123"
+}
+
+### Create Email Job
+POST {{baseUrl}}/jobs/emails
+Content-Type: application/json
+
+{
+  "to": "user@example.com",
+  "subject": "Welcome to our service!",
+  "html": "<h1>Welcome!</h1><p>Thank you for signing up.</p>",
+  "text": "Welcome! Thank you for signing up.",
+  "tenantId": "tenant-123"
+}
+
+### Create Email with Template
+POST {{baseUrl}}/jobs/emails
+Content-Type: application/json
+
+{
+  "to": ["user1@example.com", "user2@example.com"],
+  "subject": "Monthly Report",
+  "template": {
+    "name": "monthly-report",
+    "data": {
+      "month": "December",
+      "stats": {
+        "revenue": 50000,
+        "customers": 1250
+      }
+    }
+  },
+  "tenantId": "tenant-123"
+}
+
+### Create Webhook Delivery Job
+POST {{baseUrl}}/jobs/webhooks
+Content-Type: application/json
+
+{
+  "webhookId": "webhook-001",
+  "url": "https://example.com/webhooks/events",
+  "method": "POST",
+  "headers": {
+    "X-Custom-Header": "value"
+  },
+  "payload": {
+    "event": "user.created",
+    "userId": "user-123",
+    "timestamp": "2025-12-09T10:00:00Z",
+    "data": {
+      "email": "newuser@example.com",
+      "name": "New User"
+    }
+  },
+  "event": "user.created",
+  "tenantId": "tenant-123"
+}
+
+### Create Data Export Job
+POST {{baseUrl}}/jobs/exports
+Content-Type: application/json
+
+{
+  "exportId": "export-001",
+  "format": "csv",
+  "query": {
+    "table": "users",
+    "filters": {
+      "createdAfter": "2025-01-01",
+      "status": "active"
+    },
+    "columns": ["id", "email", "name", "createdAt"]
+  },
+  "tenantId": "tenant-123",
+  "notifyEmail": "admin@example.com"
+}
+
+###
+### Job Management
+###
+
+### Get Job Status
+GET {{baseUrl}}/jobs/1
+
+### Cancel Jobs by Worker
+DELETE {{baseUrl}}/jobs?worker=ProcessImage
+
+### Cancel Jobs by Queue
+DELETE {{baseUrl}}/jobs?queue=images
+
+### Cancel Jobs by Worker and Queue
+DELETE {{baseUrl}}/jobs?worker=SendEmail&queue=emails
+
+###
+### Admin/Queue Management
+###
+
+### Get All Queue Statuses
+GET {{baseUrl}}/admin/queues
+
+### Get Specific Queue Status
+GET {{baseUrl}}/admin/queues/images
+
+### Pause Queue
+POST {{baseUrl}}/admin/queues/images/pause
+
+### Resume Queue
+POST {{baseUrl}}/admin/queues/images/resume
+
+### Scale Queue Concurrency
+POST {{baseUrl}}/admin/queues/images/scale
+Content-Type: application/json
+
+{
+  "limit": 20
+}
+
+### Prune Old Jobs (older than 7 days)
+POST {{baseUrl}}/admin/jobs/prune?maxAgeSeconds=604800
+
+### Rescue Stuck Jobs (stuck for 5+ minutes)
+POST {{baseUrl}}/admin/jobs/rescue?rescueAfterSeconds=300
+
+###
+### Monitoring
+###
+
+### Get Prometheus Metrics
+GET {{baseUrl}}/metrics
+
+###
+### Batch Job Creation
+###
+
+### Create Multiple Email Jobs
+POST {{baseUrl}}/jobs/emails
+Content-Type: application/json
+
+{
+  "to": "user1@example.com",
+  "subject": "Test Email 1",
+  "text": "This is test email 1",
+  "tenantId": "tenant-123"
+}
+
+###
+POST {{baseUrl}}/jobs/emails
+Content-Type: application/json
+
+{
+  "to": "user2@example.com",
+  "subject": "Test Email 2",
+  "text": "This is test email 2",
+  "tenantId": "tenant-123"
+}
+
+###
+POST {{baseUrl}}/jobs/emails
+Content-Type: application/json
+
+{
+  "to": "user3@example.com",
+  "subject": "Test Email 3",
+  "text": "This is test email 3",
+  "tenantId": "tenant-123"
+}

@@ -1,0 +1,110 @@
+# fly.toml app configuration file
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = "content-processor-api"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = "30s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  HOST = "0.0.0.0"
+  LOG_LEVEL = "info"
+
+  # Queue Configuration
+  QUEUE_POLL_INTERVAL = "1000"
+  QUEUE_STAGE_INTERVAL = "1000"
+  QUEUE_SHUTDOWN_GRACE_PERIOD = "25000"
+
+  # Queue Limits
+  QUEUE_IMAGES_LIMIT = "10"
+  QUEUE_DOCUMENTS_LIMIT = "5"
+  QUEUE_EMAILS_LIMIT = "20"
+  QUEUE_WEBHOOKS_LIMIT = "15"
+  QUEUE_EXPORTS_LIMIT = "3"
+  QUEUE_DEFAULT_LIMIT = "5"
+
+  # Worker Timeouts
+  WORKER_IMAGE_TIMEOUT = "300000"
+  WORKER_PDF_TIMEOUT = "180000"
+  WORKER_EMAIL_TIMEOUT = "30000"
+  WORKER_WEBHOOK_TIMEOUT = "30000"
+  WORKER_EXPORT_TIMEOUT = "600000"
+
+  # Plugins
+  LIFELINE_INTERVAL = "60000"
+  LIFELINE_RESCUE_AFTER = "300"
+  PRUNER_INTERVAL = "300000"
+  PRUNER_MAX_AGE = "604800"
+
+  # Rate Limiting
+  RATE_LIMIT_MAX = "100"
+  RATE_LIMIT_WINDOW = "60000"
+
+  # Monitoring
+  ENABLE_METRICS = "true"
+  METRICS_PORT = "9090"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/health"
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 800
+
+  [[services.tcp_checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+    protocol = "http"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[deploy]
+  release_command = "node dist/scripts/migrate.js"
+  strategy = "rolling"
+
+[metrics]
+  port = 9090
+  path = "/metrics"
