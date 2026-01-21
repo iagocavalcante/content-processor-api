@@ -1,4 +1,4 @@
-import { createIziQueue, createLifelinePlugin, createPrunerPlugin } from '../lib/izi-queue/index.js';
+import { createIziQueue, createLifelinePlugin, createPrunerPlugin } from 'izi-queue';
 import { config } from '../config/index.js';
 import { queueAdapter } from '../database/index.js';
 import {
@@ -38,7 +38,7 @@ export const queue = createIziQueue({
   isolation: {
     maxThreads: 8,    // Maximum concurrent isolated worker threads
     minThreads: 2,    // Minimum threads to keep alive (warm pool)
-    idleTimeout: 30000, // Kill idle threads after 30 seconds
+    idleTimeoutMs: 30000, // Kill idle threads after 30 seconds
   },
 });
 

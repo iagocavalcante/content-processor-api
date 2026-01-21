@@ -1,4 +1,4 @@
-import { defineWorker, WorkerResults, type Job } from '../lib/izi-queue/index.js';
+import { defineWorker, WorkerResults, type Job } from 'izi-queue';
 import { config } from '../config/index.js';
 
 interface ImageJobArgs {

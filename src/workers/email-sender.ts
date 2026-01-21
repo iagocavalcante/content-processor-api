@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineWorker, WorkerResults, type Job } from '../lib/izi-queue/index.js';
+import { defineWorker, WorkerResults, type Job } from 'izi-queue';
 import { config } from '../config/index.js';
 
 const __filename = fileURLToPath(import.meta.url);

@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { createPostgresAdapter } from '../lib/izi-queue/index.js';
+import { createPostgresAdapter } from 'izi-queue';
 import { config } from '../config/index.js';
 
 const { Pool } = pg;
