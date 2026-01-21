@@ -1,5 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineWorker, WorkerResults, type Job } from '../lib/izi-queue/index.js';
 import { config } from '../config/index.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 interface EmailJobArgs {
   to: string | string[];
@@ -106,3 +111,47 @@ export const emailSenderWorker = defineWorker<EmailJobArgs>(
 function simulateAsyncOperation(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * Isolated Email Sending Worker
+ *
+ * This worker runs in a separate thread (Worker Thread) for memory isolation.
+ * Use this pattern for CPU-intensive or memory-heavy operations to:
+ * - Prevent memory leaks from affecting the main process
+ * - Contain crashes within the worker thread
+ * - Apply memory limits per worker type
+ *
+ * The actual worker logic is in ./isolated/email-worker.js
+ */
+export const isolatedEmailSenderWorker = defineWorker<EmailJobArgs>(
+  'SendEmailIsolated',
+  // When isolation is enabled, the perform function is just a placeholder
+  // The actual execution happens in the worker thread specified by workerPath
+  async () => {},
+  {
+    queue: 'emails',
+    maxAttempts: 5,
+    timeout: config.workers.emailTimeout,
+    priority: 2,
+    // Custom exponential backoff for emails
+    backoff: (job) => {
+      const baseDelay = 1000; // 1 second
+      const maxDelay = 300000; // 5 minutes
+      const delay = Math.min(baseDelay * Math.pow(2, job.attempt - 1), maxDelay);
+      // Add jitter to prevent thundering herd
+      const jitter = Math.random() * 1000;
+      return delay + jitter;
+    },
+    // Isolation configuration - runs worker in a separate thread
+    isolation: {
+      isolated: true,
+      workerPath: path.resolve(__dirname, './isolated/email-worker.js'),
+      resourceLimits: {
+        // Limit memory to 128MB for this worker type
+        maxOldGenerationSizeMb: 128,
+        // Limit young generation (short-lived objects) to 32MB
+        maxYoungGenerationSizeMb: 32,
+      },
+    },
+  }
+);

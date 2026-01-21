@@ -52,6 +52,8 @@ const EmailJobSchema = z.object({
     .optional(),
   tenantId: z.string(),
   messageId: z.string().optional(),
+  // Option to use isolated worker for memory-intensive operations
+  isolated: z.boolean().optional(),
 });
 
 const WebhookJobSchema = z.object({
@@ -148,13 +150,18 @@ export async function registerJobRoutes(fastify: FastifyInstance): Promise<void>
   );
 
   // Email sending job
+  // Supports both standard (in-process) and isolated (thread-based) workers
   fastify.post(
     '/jobs/emails',
     async (request: FastifyRequest<{ Body: z.infer<typeof EmailJobSchema> }>, reply: FastifyReply) => {
       try {
-        const args = EmailJobSchema.parse(request.body);
+        const { isolated, ...args } = EmailJobSchema.parse(request.body);
 
-        const job = await queue.insert('SendEmail', {
+        // Use isolated worker for memory-intensive operations
+        // The isolated worker runs in a separate thread with memory limits
+        const workerName = isolated ? 'SendEmailIsolated' : 'SendEmail';
+
+        const job = await queue.insert(workerName, {
           args,
           queue: 'emails',
         });
@@ -162,7 +169,8 @@ export async function registerJobRoutes(fastify: FastifyInstance): Promise<void>
         return reply.code(201).send({
           success: true,
           jobId: job.id,
-          message: 'Email job created',
+          message: isolated ? 'Isolated email job created' : 'Email job created',
+          isolated: !!isolated,
         });
       } catch (error) {
         if (error instanceof z.ZodError) {

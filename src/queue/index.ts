@@ -5,6 +5,7 @@ import {
   imageProcessorWorker,
   pdfGeneratorWorker,
   emailSenderWorker,
+  isolatedEmailSenderWorker,
   webhookDelivererWorker,
   dataExporterWorker,
 } from '../workers/index.js';
@@ -32,13 +33,28 @@ export const queue = createIziQueue({
       maxAge: config.plugins.pruner.maxAge,
     }),
   ],
+  // Isolation configuration for worker threads
+  // This controls the thread pool for isolated workers
+  isolation: {
+    maxThreads: 8,    // Maximum concurrent isolated worker threads
+    minThreads: 2,    // Minimum threads to keep alive (warm pool)
+    idleTimeout: 30000, // Kill idle threads after 30 seconds
+  },
 });
 
 // Register all workers
 export function registerWorkers(): void {
   queue.register(imageProcessorWorker);
   queue.register(pdfGeneratorWorker);
+
+  // Standard in-process email worker
   queue.register(emailSenderWorker);
+
+  // Isolated email worker - runs in a separate thread for memory safety
+  // Use this for high-volume or memory-intensive email processing
+  // Jobs can be routed to this worker by using 'SendEmailIsolated' as the worker name
+  queue.register(isolatedEmailSenderWorker);
+
   queue.register(webhookDelivererWorker);
   queue.register(dataExporterWorker);
 }

@@ -53,6 +53,17 @@ export type WorkerResult = {
     status: 'snooze';
     seconds: number;
 };
+export interface WorkerResourceLimits {
+    maxOldGenerationSizeMb?: number;
+    maxYoungGenerationSizeMb?: number;
+    codeRangeSizeMb?: number;
+    stackSizeMb?: number;
+}
+export interface WorkerIsolationConfig {
+    isolated: boolean;
+    workerPath: string;
+    resourceLimits?: WorkerResourceLimits;
+}
 export interface WorkerDefinition<T = Record<string, unknown>> {
     name: string;
     perform: (job: Job<T>) => Promise<WorkerResult | void>;
@@ -61,6 +72,7 @@ export interface WorkerDefinition<T = Record<string, unknown>> {
     priority?: number;
     backoff?: (job: Job<T>) => number;
     timeout?: number;
+    isolation?: WorkerIsolationConfig;
 }
 export interface QueueConfig {
     name: string;
@@ -89,6 +101,11 @@ export interface DatabaseAdapter {
     }) => void): Promise<void>;
     notify?(queue: string): Promise<void>;
 }
+export interface QueueIsolationConfig {
+    maxThreads?: number;
+    minThreads?: number;
+    idleTimeout?: number;
+}
 export interface IziQueueConfig {
     database: DatabaseAdapter;
     queues: QueueConfig[] | Record<string, number>;
@@ -96,6 +113,7 @@ export interface IziQueueConfig {
     stageInterval?: number;
     shutdownGracePeriod?: number;
     pollInterval?: number;
+    isolation?: QueueIsolationConfig;
 }
 export type TelemetryEvent = 'job:start' | 'job:complete' | 'job:error' | 'job:cancel' | 'job:snooze' | 'job:rescue' | 'job:unique_conflict' | 'queue:start' | 'queue:stop' | 'queue:pause' | 'queue:resume' | 'plugin:start' | 'plugin:stop' | 'plugin:error';
 export interface TelemetryPayload {
