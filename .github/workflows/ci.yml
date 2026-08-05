@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Test-only value. The app refuses to start without one, which is the point.
+  API_KEY: ci-api-key-that-is-at-least-32-characters-long
+
+jobs:
+  check:
+    name: Lint, typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  smoke:
+    name: Boots and processes a job
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: cpa
+          POSTGRES_DB: cpa
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      # The unit tests never touch the database or the queue. This starts the
+      # real server, enqueues through the HTTP API, and waits for a worker to
+      # finish it -- which is the only way to catch a broken migration, a
+      # misconfigured queue, or a dependency upgrade that changes job semantics.
+      - name: Boot, enqueue a job, and shut down cleanly
+        env:
+          DATABASE_URL: postgres://postgres:cpa@localhost:5432/cpa
+          NODE_ENV: production
+          PORT: '3400'
+          LOG_LEVEL: warn
+        run: |
+          node dist/server.js &
+          APP=$!
+
+          for i in $(seq 1 60); do
+            curl -sf http://localhost:3400/health > /dev/null && break
+            sleep 1
+          done
+
+          echo "--- authentication ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3400/admin/queues)
+          [ "$code" = "401" ] || { echo "expected 401 without a key, got $code"; exit 1; }
+
+          code=$(curl -s -o /dev/null -w '%{http_code}' -H "X-API-Key: $API_KEY" http://localhost:3400/admin/queues)
+          [ "$code" = "200" ] || { echo "expected 200 with a key, got $code"; exit 1; }
+
+          echo "--- unscoped bulk cancel is refused ---"
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE -H "X-API-Key: $API_KEY" http://localhost:3400/jobs)
+          [ "$code" = "400" ] || { echo "expected 400 for an unscoped cancel, got $code"; exit 1; }
+
+          echo "--- a job runs end to end ---"
+          job=$(curl -s -X POST http://localhost:3400/jobs/webhooks \
+            -H "X-API-Key: $API_KEY" -H 'Content-Type: application/json' \
+            -d '{"webhookId":"wh_ci","url":"https://example.invalid/hook","method":"POST","payload":{"ci":true},"event":"ci.run","tenantId":"ci"}' \
+            | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>console.log(JSON.parse(d).jobId))")
+
+          [ -n "$job" ] || { echo "job was not enqueued"; exit 1; }
+
+          for i in $(seq 1 30); do
+            state=$(curl -s -H "X-API-Key: $API_KEY" "http://localhost:3400/jobs/$job" \
+              | node -e "let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{const j=JSON.parse(d);console.log((j.job||j).state||'')})")
+            case "$state" in
+              completed|discarded|retryable) break ;;
+            esac
+            sleep 1
+          done
+
+          echo "job $job reached state: $state"
+          [ "$state" = "completed" ] || { echo "job did not complete"; exit 1; }
+
+          echo "--- shutdown exits cleanly ---"
+          kill -TERM $APP
+          wait $APP
+          echo "SIGTERM exit code: $?"

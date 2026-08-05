@@ -1,4 +1,4 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyError, type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
@@ -102,7 +102,7 @@ export async function buildServer(): Promise<FastifyInstance> {
     docs: config.nodeEnv === 'production' ? null : '/documentation',
   }));
 
-  fastify.setErrorHandler((error: any, request, reply) => {
+  fastify.setErrorHandler((error: FastifyError, request, reply) => {
     fastify.log.error({ error, url: request.url }, 'Request error');
 
     if (error.validation) {

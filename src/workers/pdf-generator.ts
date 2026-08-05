@@ -28,6 +28,7 @@ export const pdfGeneratorWorker = defineWorker<PDFJobArgs>(
     try {
       console.log(`[GeneratePDF] Generating PDF ${documentId} for tenant ${tenantId}`);
       console.log(`[GeneratePDF] Template: ${template}`);
+      console.log(`[GeneratePDF] Template data: ${Object.keys(data ?? {}).length} field(s)`);
 
       // Step 1: Load template
       console.log(`[GeneratePDF] Loading template: ${template}`);

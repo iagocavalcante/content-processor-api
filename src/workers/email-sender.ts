@@ -38,6 +38,7 @@ export const emailSenderWorker = defineWorker<EmailJobArgs>(
 
     try {
       console.log(`[SendEmail] Sending email ${emailId} to ${recipients.join(', ')}`);
+      console.log(`[SendEmail] From: ${from ?? '(default sender)'}`);
       console.log(`[SendEmail] Subject: ${subject}`);
       console.log(`[SendEmail] Tenant: ${tenantId}`);
 
@@ -51,6 +52,11 @@ export const emailSenderWorker = defineWorker<EmailJobArgs>(
         emailHtml = `<html><body>Rendered: ${template.name}</body></html>`;
         emailText = `Rendered: ${template.name}`;
       }
+
+      console.log(
+        `[SendEmail] Body: ${emailHtml ? `${emailHtml.length} bytes html` : 'no html'}, ` +
+          `${emailText ? `${emailText.length} bytes text` : 'no text'}`
+      );
 
       // Step 2: Download attachments if any
       if (attachments && attachments.length > 0) {

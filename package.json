@@ -9,10 +9,11 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "migrate": "node dist/scripts/migrate.js",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "lint": "eslint src tests --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest"
   },
   "keywords": [
     "job-queue",

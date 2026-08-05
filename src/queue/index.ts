@@ -59,8 +59,19 @@ export function registerWorkers(): void {
   queue.register(dataExporterWorker);
 }
 
+/**
+ * The subset of a logger this module uses. Structural so both the Fastify
+ * (pino) logger and the bare `console` fallback used during shutdown satisfy
+ * it without either being imported here.
+ */
+export interface QueueLogger {
+  info(obj: unknown, msg?: string): void;
+  warn(obj: unknown, msg?: string): void;
+  error(obj: unknown, msg?: string): void;
+}
+
 // Setup telemetry and logging
-export function setupTelemetry(logger: any): void {
+export function setupTelemetry(logger: QueueLogger): void {
   queue.on('job:start', ({ job }) => {
     if (job) logger.info({ jobId: job.id, worker: job.worker, queue: job.queue }, 'Job started');
   });
@@ -143,7 +154,7 @@ export function setupTelemetry(logger: any): void {
   });
 }
 
-export async function startQueue(logger: any): Promise<void> {
+export async function startQueue(logger: QueueLogger): Promise<void> {
   logger.info('Running database migrations...');
   await queue.migrate();
 
@@ -159,7 +170,7 @@ export async function startQueue(logger: any): Promise<void> {
   logger.info('Queue processing started successfully');
 }
 
-export async function stopQueue(logger: any): Promise<void> {
+export async function stopQueue(logger: QueueLogger): Promise<void> {
   logger.info('Stopping queue processing...');
   await queue.shutdown();
   logger.info('Queue processing stopped');

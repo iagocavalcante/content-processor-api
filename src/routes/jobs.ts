@@ -95,17 +95,6 @@ const ExportJobSchema = z.object({
   notifyEmail: z.string().email().optional(),
 });
 
-const ScheduleOptionsSchema = z.object({
-  scheduledAt: z.string().datetime().optional(),
-  priority: z.number().min(0).max(10).optional(),
-  maxAttempts: z.number().min(1).max(20).optional(),
-  unique: z
-    .object({
-      keys: z.array(z.string()).optional(),
-      period: z.number().or(z.literal('infinity')).optional(),
-    })
-    .optional(),
-});
 
 export async function registerJobRoutes(fastify: FastifyInstance): Promise<void> {
   // Image processing job

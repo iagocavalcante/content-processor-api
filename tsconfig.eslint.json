@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
+  "// exclude": "The base config excludes **/*.test.ts so tests stay out of dist. Lint needs them.",
+  "exclude": ["node_modules", "dist"]
+}
