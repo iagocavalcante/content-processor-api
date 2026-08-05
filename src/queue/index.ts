@@ -88,7 +88,34 @@ export function setupTelemetry(logger: any): void {
   });
 
   queue.on('job:rescue', ({ result }) => {
-    logger.info({ result }, 'Jobs rescued');
+    logger.info({ result }, 'Jobs rescued from a node that stopped heartbeating');
+  });
+
+  queue.on('job:retry', ({ result }) => {
+    logger.info({ result }, 'Jobs returned to the queue');
+  });
+
+  // Deterministic: no number of retries will make the worker appear.
+  queue.on('job:unknown_worker', ({ job, error }) => {
+    logger.error(
+      { jobId: job?.id, worker: job?.worker, error: error?.message },
+      'Job discarded: worker not registered'
+    );
+  });
+
+  // The job moved on before its result could be written -- cancelled by an
+  // operator, or rescued onto another node.
+  queue.on('job:transition_refused', ({ job, result }) => {
+    logger.warn(
+      { jobId: job?.id, worker: job?.worker, from: job?.state, result },
+      'Job result discarded: state had already changed'
+    );
+  });
+
+  // Maintenance, not completed work. Before 0.5.0 the pruner emitted
+  // job:complete, which inflated any count of finished jobs.
+  queue.on('jobs:pruned', ({ result }) => {
+    logger.info({ result }, 'Old jobs pruned');
   });
 
   queue.on('job:unique_conflict', ({ job }) => {

@@ -59,8 +59,9 @@ if ! fly apps list | grep -q "$APP_NAME"; then
 
     # Set required secrets
     echo -e "${YELLOW}Setting required secrets...${NC}"
-    JWT_SECRET=$(openssl rand -base64 32)
-    fly secrets set JWT_SECRET="$JWT_SECRET" --app "$APP_NAME"
+    API_KEY=$(openssl rand -base64 32)
+    fly secrets set API_KEY="$API_KEY" --app "$APP_NAME"
+    echo -e "${YELLOW}API_KEY generated. Retrieve it with: fly ssh console -C 'printenv API_KEY'${NC}"
 
     echo -e "${GREEN}Initial setup complete!${NC}"
 fi
@@ -70,8 +71,8 @@ echo -e "${YELLOW}Running pre-deployment checks...${NC}"
 
 # Check secrets
 echo "Checking required secrets..."
-if ! fly secrets list --app "$APP_NAME" | grep -q "JWT_SECRET"; then
-    echo -e "${RED}Error: JWT_SECRET not set${NC}"
+if ! fly secrets list --app "$APP_NAME" | grep -q "API_KEY"; then
+    echo -e "${RED}Error: API_KEY not set. The app will refuse to start without it.${NC}"
     exit 1
 fi
 
