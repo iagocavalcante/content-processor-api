@@ -30,6 +30,9 @@ export const webhookDelivererWorker = defineWorker<WebhookJobArgs>(
       console.log(`[DeliverWebhook] Delivering webhook ${webhookId} to ${url}`);
       console.log(`[DeliverWebhook] Event: ${event}, Tenant: ${tenantId}`);
       console.log(`[DeliverWebhook] Attempt: ${job.attempt}/${job.maxAttempts}`);
+      console.log(
+        `[DeliverWebhook] Payload: ${JSON.stringify(payload).length} bytes via ${method}`
+      );
 
       // Step 1: Prepare request
       const requestHeaders = {
@@ -43,7 +46,10 @@ export const webhookDelivererWorker = defineWorker<WebhookJobArgs>(
       };
 
       // Step 2: Send HTTP request
-      console.log(`[DeliverWebhook] Sending ${method} request to ${url}`);
+      console.log(
+        `[DeliverWebhook] Sending ${method} request to ${url} ` +
+          `with ${Object.keys(requestHeaders).length} headers`
+      );
       await simulateAsyncOperation(500);
 
       // Simulate HTTP responses

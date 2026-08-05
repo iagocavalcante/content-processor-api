@@ -9,10 +9,11 @@
     "dev": "tsx watch src/server.ts",
     "start": "node dist/server.js",
     "migrate": "node dist/scripts/migrate.js",
-    "test": "vitest",
-    "lint": "eslint src --ext .ts",
+    "test": "vitest run",
+    "lint": "eslint src tests --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:watch": "vitest"
   },
   "keywords": [
     "job-queue",
@@ -31,7 +32,7 @@
     "@fastify/swagger-ui": "^5.2.0",
     "dotenv": "^16.4.5",
     "fastify": "^5.1.0",
-    "izi-queue": "^0.3.0",
+    "izi-queue": "^0.7.0",
     "pg": "^8.13.1",
     "pino": "^9.5.0",
     "pino-pretty": "^13.0.0",

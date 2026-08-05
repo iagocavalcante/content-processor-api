@@ -187,7 +187,7 @@ This automatically sets the `DATABASE_URL` secret.
 
 ```bash
 # Required
-fly secrets set JWT_SECRET=$(openssl rand -base64 32)
+fly secrets set API_KEY=$(openssl rand -base64 32)
 
 # Optional external service credentials
 fly secrets set AWS_ACCESS_KEY_ID=your_key

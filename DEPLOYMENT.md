@@ -97,7 +97,7 @@ fly postgres db list --app content-processor-db
 
 ```bash
 # Generate and set JWT secret
-fly secrets set JWT_SECRET=$(openssl rand -base64 32) --app content-processor-api
+fly secrets set API_KEY=$(openssl rand -base64 32) --app content-processor-api
 
 # Set external service credentials (optional)
 fly secrets set \
@@ -557,7 +557,7 @@ done
 
 ```bash
 # Update JWT secret
-fly secrets set JWT_SECRET=$(openssl rand -base64 32) --app content-processor-api
+fly secrets set API_KEY=$(openssl rand -base64 32) --app content-processor-api
 
 # Update SMTP credentials
 fly secrets set SMTP_PASSWORD=new_password --app content-processor-api

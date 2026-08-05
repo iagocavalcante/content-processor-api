@@ -1,6 +1,17 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { queue } from '../queue/index.js';
+import type { JobState } from 'izi-queue';
+
+const JOB_STATES: JobState[] = [
+  'scheduled',
+  'available',
+  'executing',
+  'retryable',
+  'completed',
+  'discarded',
+  'cancelled',
+];
 
 // Validation schemas
 const ImageJobSchema = z.object({
@@ -84,17 +95,6 @@ const ExportJobSchema = z.object({
   notifyEmail: z.string().email().optional(),
 });
 
-const ScheduleOptionsSchema = z.object({
-  scheduledAt: z.string().datetime().optional(),
-  priority: z.number().min(0).max(10).optional(),
-  maxAttempts: z.number().min(1).max(20).optional(),
-  unique: z
-    .object({
-      keys: z.array(z.string()).optional(),
-      period: z.number().or(z.literal('infinity')).optional(),
-    })
-    .optional(),
-});
 
 export async function registerJobRoutes(fastify: FastifyInstance): Promise<void> {
   // Image processing job
@@ -281,10 +281,29 @@ export async function registerJobRoutes(fastify: FastifyInstance): Promise<void>
     ) => {
       const { worker, queue: queueName, state } = request.query;
 
-      const criteria: { worker?: string; queue?: string; state?: any[] } = {};
+      const criteria: { worker?: string; queue?: string; state?: JobState[] } = {};
       if (worker) criteria.worker = worker;
       if (queueName) criteria.queue = queueName;
-      if (state) criteria.state = state.split(',');
+      if (state) {
+        const requested = state.split(',').map((s) => s.trim()).filter(Boolean);
+        const invalid = requested.filter((s) => !JOB_STATES.includes(s as JobState));
+        if (invalid.length > 0) {
+          return reply.code(400).send({
+            error: `Unknown job state(s): ${invalid.join(', ')}`,
+            allowed: JOB_STATES,
+          });
+        }
+        criteria.state = requested as JobState[];
+      }
+
+      // Refuse an unscoped cancel. Forwarding optional query parameters means
+      // a request with none of them would otherwise cancel every pending job
+      // in the database.
+      if (!criteria.worker && !criteria.queue && !criteria.state?.length) {
+        return reply.code(400).send({
+          error: 'Refusing to cancel every job. Provide at least one of: worker, queue, state.',
+        });
+      }
 
       const cancelled = await queue.cancelJobs(criteria);
 

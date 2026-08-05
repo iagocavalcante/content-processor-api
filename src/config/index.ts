@@ -68,7 +68,12 @@ const ConfigSchema = z.object({
   // Security
   security: z.object({
     apiKeyHeader: z.string().default('X-API-Key'),
-    jwtSecret: z.string().min(32),
+    /**
+     * Required, with no fallback and no way to disable authentication. A
+     * default here would be a published credential, and a "disabled in
+     * development" switch is the kind of thing that reaches production.
+     */
+    apiKey: z.string().min(32, 'API_KEY must be at least 32 characters'),
   }),
 
   // Rate Limiting
@@ -145,7 +150,7 @@ function loadConfig(): Config {
 
     security: {
       apiKeyHeader: process.env.API_KEY_HEADER,
-      jwtSecret: process.env.JWT_SECRET || 'change-me-in-production-must-be-at-least-32-chars',
+      apiKey: process.env.API_KEY,
     },
 
     rateLimit: {
